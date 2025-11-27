@@ -89,6 +89,10 @@ void ABallPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
     // Make sure you have these names set in Project Settings → Input.
     PlayerInputComponent->BindAxis(TEXT("MoveForward"), this, &ABallPawn::MoveForward);
     PlayerInputComponent->BindAxis(TEXT("MoveRight"),   this, &ABallPawn::MoveRight);
+    
+    // Camera (uses built-in APawn helpers to rotate the controller)
+    PlayerInputComponent->BindAxis(TEXT("Turn"),   this, &APawn::AddControllerYawInput);
+    PlayerInputComponent->BindAxis(TEXT("LookUp"), this, &APawn::AddControllerPitchInput);
 
     // Bind jump action
     PlayerInputComponent->BindAction(TEXT("Jump"), IE_Pressed, this, &ABallPawn::JumpPressed);
