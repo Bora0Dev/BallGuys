@@ -24,6 +24,8 @@ ABallPawn::ABallPawn()
 
     // Tell the mesh to behave like a physics ball
     MeshComp->SetSimulatePhysics(true);
+    MeshComp->SetLinearDamping(0.6f); //slows how far it coasts
+    MeshComp->SetAngularDamping(0.8f); //slow spin
     MeshComp->SetCollisionProfileName(UCollisionProfile::PhysicsActor_ProfileName);
 
     // Make sure hit events are generated (for NotifyHit)
@@ -33,7 +35,7 @@ ABallPawn::ABallPawn()
     // Create a spring arm
     SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
     SpringArm->SetupAttachment(MeshComp);
-    SpringArm->TargetArmLength = 400.f;
+    SpringArm->TargetArmLength = 600.f;
     SpringArm->bUsePawnControlRotation = true; // Camera rotates with controller yaw/pitch
 
     // Create a camera
@@ -53,9 +55,9 @@ ABallPawn::ABallPawn()
 
     // ----------------- Movement tuning defaults -----------------
 
-    TorqueStrength        = 50000000.f;  // "How hard we roll"
-    JumpImpulse           = 200000.f;    // "How hard we jump"
-    GroundCheckDistance   = 60.f;        // Distance below the ball to look for ground
+    TorqueStrength        = 25.f;  // "How hard we roll" changed to 25 from 5,000,000
+    JumpImpulse           = 600.f;    // "How hard we jump" changed to 600 from 250,000
+    GroundCheckDistance   = -45.f;        // Distance below the ball to look for ground DO NOT GO PAST -49.f
     KnockImpulseStrength  = 200000.f;    // Impulse to shove other balls
 
     CachedForwardInput = 0.f;
@@ -79,6 +81,18 @@ void ABallPawn::Tick(float DeltaSeconds)
 
     // We don't need to do anything each tick here yet.
     // All movement is driven by input → RPC → physics on server.
+
+    /* if (HasAuthority())
+    {
+        const bool bNowGrounded = IsGrounded();
+
+        // We just "landed" this frame
+        if (bNowGrounded && !bWasGroundedLastFrame)
+        {
+            bHasJumpedSinceLastGround = false;  // allow new jump
+        }
+        bWasGroundedLastFrame = bNowGrounded;
+    } */ // part of the how to break a jump with booleans lesson
 }
 
 void ABallPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -150,7 +164,7 @@ void ABallPawn::Server_AddMovementInput_Implementation(float ForwardValue, float
     }
 
     // Use the controller's yaw as our input space, like a typical third-person game
-    FRotator ControlRot = GetActorRotation();
+    FRotator ControlRot = FRotator::ZeroRotator;//old code GetActorRotation();
     if (AController* PC = Controller)
     {
         ControlRot = PC->GetControlRotation();
@@ -201,7 +215,8 @@ void ABallPawn::Server_Jump_Implementation()
     }
 
     // Simple grounded check so we can't spam jump in midair
-    if (!IsGrounded())
+    // Must be GROUNDED and NOT have jumped since last frame
+   if (!IsGrounded() /* || bHasJumpedSinceLastGround */)
     {
         return;
     }
@@ -210,6 +225,9 @@ void ABallPawn::Server_Jump_Implementation()
 
     // VelChange=true makes the impulse independent of mass (feels more “gamey”)
     MeshComp->AddImpulse(Impulse, NAME_None, true);
+
+    // Lock out further jumps until we leave ground and jump again
+   /* bHasJumpedSinceLastGround = true; */
 }
 
 // ----------------- Ground check -----------------
@@ -227,24 +245,33 @@ bool ABallPawn::IsGrounded() const
         return false;
     }
 
-    const FVector Start = MeshComp->GetComponentLocation();
-    const FVector End   = Start - FVector(0.f, 0.f, GroundCheckDistance);
+    //Centre of the ball and its radius
+    const FVector Center = MeshComp->GetComponentLocation();
+    const float Radius   = MeshComp->Bounds.SphereRadius;
+    
+    const FVector Start = Center;
+    const FVector End   = Center - FVector(0.f, 0.f, Radius + GroundCheckDistance);
 
     FHitResult Hit;
     FCollisionQueryParams Params(SCENE_QUERY_STAT(BallGroundCheck), false, this);
 
     // Trace downwards – you might want ECC_WorldStatic / ECC_WorldDynamic
-    const bool bHit = World->LineTraceSingleByChannel(
+    const bool bHit = World->SweepSingleByChannel(
         Hit,
         Start,
         End,
-        ECC_Visibility,
+        FQuat::Identity,
+        ECC_WorldStatic,
+        FCollisionShape::MakeSphere(Radius * 0.9f),
         Params
     );
 
     // Debug line (optional – comment out for production)
-    // DrawDebugLine(World, Start, End, bHit ? FColor::Green : FColor::Red, false, 0.f, 0, 1.f);
-
+    
+   /* const FColor Color = bHit ? FColor::Green : FColor::Red;
+    DrawDebugLine(World, Start, End, Color, false, 0.f, 0, 1.f);
+    DrawDebugSphere(World, End, Radius * 0.9f, 16, Color, false, 0.f); */
+     
     return bHit;
 }
 

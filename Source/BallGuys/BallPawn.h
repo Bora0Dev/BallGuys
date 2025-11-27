@@ -106,6 +106,9 @@ protected:
 
     /** Simple ground check via line trace straight down from the ball. */
     bool IsGrounded() const;
+    // added to stop spam jumping
+    /* bool bWasGroundedLastFrame = false;
+    bool bHasJumpedSinceLastGround = false; */ // possible to break the jump with these
 
     /** Called whenever this actor's primitive component hits something.
      *  We override this so we can knock other balls away on the server.
