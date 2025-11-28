@@ -191,7 +191,7 @@ void ABallPawn::Server_AddMovementInput_Implementation(float ForwardValue, float
     // to MoveDir and Up. Using the right-hand rule:
     //   TorqueAxis = MoveDir x Up
     const FVector Up = FVector::UpVector;
-    FVector TorqueAxis = FVector::CrossProduct(MoveDir, Up);
+    FVector TorqueAxis = FVector::CrossProduct(/* MoveDir,*/ Up, MoveDir);
 
     if (TorqueAxis.IsNearlyZero())
     {
