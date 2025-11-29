@@ -134,6 +134,8 @@ void ABallPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
     // Bind jump action
     PlayerInputComponent->BindAction(TEXT("Jump"), IE_Pressed, this, &ABallPawn::JumpPressed);
     */
+
+    
     // Use EnhancedInputComponent instead of plain UInputComponent
     // 1) Add the mapping context for the LOCAL player that owns this pawn
     if (APlayerController* PC = Cast<APlayerController>(GetController()))
@@ -180,6 +182,17 @@ void ABallPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
         {
             EnhancedInput->BindAction(JumpAction, ETriggerEvent::Started, this, &ABallPawn::HandleJump);
         }
+
+        // X and Y invert axes toggles
+        if (InvertXAction)
+        {
+            EnhancedInput->BindAction(InvertXAction, ETriggerEvent::Started, this, &ABallPawn::HandleInvertX);
+        }
+
+        if (InvertYAction)
+        {
+            EnhancedInput->BindAction(InvertYAction, ETriggerEvent::Started, this, &ABallPawn::HandleInvertY);
+        }
     }
 }
 
@@ -216,16 +229,54 @@ void ABallPawn::HandleLook(const FInputActionValue& Value)
 }
 */
 
+// Turn camera
 void ABallPawn::TurnCamera(const FInputActionValue& Value)
 {
-    const float Axis = Value.Get<float>();
+    float Axis = Value.Get<float>();
+
+    if (bInvertTurnAxis)
+    {
+        Axis *= -1.f;
+    }
+    
     AddControllerYawInput(Axis);
 }
-
+// LookUp camera
 void ABallPawn::LookUpCamera(const FInputActionValue& Value)
 {
-    const float Axis = Value.Get<float>();
+    float Axis = Value.Get<float>();
+
+    if (bInvertLookUpAxis)
+    {
+        Axis *= -1.f;
+    }
+    
     AddControllerPitchInput(Axis);
+}
+// Invert X-Axis Turn camera
+void ABallPawn::HandleInvertX(const FInputActionValue& Value)
+{
+    // Digital action; only toggle on press NOT release
+    const bool bPressed = Value.Get<bool>();
+    if (!bPressed || !IsLocallyControlled())
+    {
+        return;
+    }
+
+    bInvertTurnAxis = !bInvertTurnAxis;
+    // (Optional; notify UI here)
+}
+// Invert Y-Axis LookUp camera
+void ABallPawn::HandleInvertY(const FInputActionValue& Value)
+{
+    const bool bPressed = Value.Get<bool>();
+    if (!bPressed || !IsLocallyControlled())
+    {
+        return;
+    }
+
+    bInvertLookUpAxis = !bInvertLookUpAxis;
+    // (Optional: notify UI here)
 }
 
 void ABallPawn::HandleJump(const FInputActionValue& Value)
