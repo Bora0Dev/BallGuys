@@ -11,6 +11,12 @@
 #include "Engine/CollisionProfile.h"
 #include "Engine/World.h"
 #include "DrawDebugHelpers.h"
+#include "EnhancedInputComponent.h"
+#include "Components/InputComponent.h"
+#include "EnhancedInputSubsystems.h"
+#include "InputMappingContext.h"
+#include "InputAction.h"
+
 
 ABallPawn::ABallPawn()
 {
@@ -67,7 +73,23 @@ ABallPawn::ABallPawn()
 void ABallPawn::BeginPlay()
 {
     Super::BeginPlay();
-
+    /*
+    // Add Enhanced Input mapping context on the owning client
+    if (APlayerController* PC = Cast<APlayerController>(GetController()))
+    {
+        if (ULocalPlayer* LP = PC->GetLocalPlayer())
+        {
+            if (UEnhancedInputLocalPlayerSubsystem* Subsys =
+                ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(LP))
+            {
+                if (DefaultMappingContext)
+                {
+                    Subsys->AddMappingContext(DefaultMappingContext, 0);
+                }
+            }
+        }
+    }
+    */
     // At runtime, you'll usually have a Blueprint subclass of ABallPawn
     // where you assign:
     //  - the Static Mesh asset
@@ -101,6 +123,7 @@ void ABallPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
     // Bind axes (legacy input system)
     // Make sure you have these names set in Project Settings → Input.
+    /*
     PlayerInputComponent->BindAxis(TEXT("MoveForward"), this, &ABallPawn::MoveForward);
     PlayerInputComponent->BindAxis(TEXT("MoveRight"),   this, &ABallPawn::MoveRight);
     
@@ -110,11 +133,111 @@ void ABallPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
     // Bind jump action
     PlayerInputComponent->BindAction(TEXT("Jump"), IE_Pressed, this, &ABallPawn::JumpPressed);
+    */
+    // Use EnhancedInputComponent instead of plain UInputComponent
+    // 1) Add the mapping context for the LOCAL player that owns this pawn
+    if (APlayerController* PC = Cast<APlayerController>(GetController()))
+    {
+        if (PC->IsLocalController())
+        {
+            if (ULocalPlayer* LP = PC->GetLocalPlayer())
+            {
+                if (UEnhancedInputLocalPlayerSubsystem* Subsys =
+                    ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(LP))
+                {
+                    if (DefaultMappingContext)
+                    {
+                        Subsys->AddMappingContext(DefaultMappingContext, 0);
+                    }
+                }
+            }
+        }
+    }
+    // Bind actions using EnhancedInputComponent
+    if (UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(PlayerInputComponent))
+    {
+        if (MoveAction)
+        {
+            EnhancedInput->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ABallPawn::HandleMove);
+        }
+        /* // OLD 2D axis camera input
+        if (LookAction)
+        {
+            EnhancedInput->BindAction(LookAction, ETriggerEvent::Triggered, this, &ABallPawn::HandleLook);
+        }
+        */
+        if (TurnAction)
+        {
+            EnhancedInput->BindAction(TurnAction, ETriggerEvent::Triggered, this, &ABallPawn::TurnCamera);
+        }
+
+        if (LookUpAction)
+        {
+            EnhancedInput->BindAction(LookUpAction, ETriggerEvent::Triggered, this, &ABallPawn::LookUpCamera);
+        }
+        
+        if (JumpAction)
+        {
+            EnhancedInput->BindAction(JumpAction, ETriggerEvent::Started, this, &ABallPawn::HandleJump);
+        }
+    }
 }
 
 // ----------------- Client-side input handlers -----------------
 
-void ABallPawn::MoveForward(float Value)
+void ABallPawn::HandleMove(const FInputActionValue& Value)
+{
+    // Expecting a 2D axis (X = Right, Y = Forward)
+    const FVector2D MoveAxis = Value.Get<FVector2D>();
+
+    const float ForwardValue = MoveAxis.Y;
+    const float RightValue   = MoveAxis.X;
+
+    // Cache if you still want, but main thing: send to server
+    CachedForwardInput = ForwardValue;
+    CachedRightInput   = RightValue;
+
+    if (IsLocallyControlled())
+    {
+        Server_AddMovementInput(ForwardValue, RightValue);
+    }
+}
+
+/*
+void ABallPawn::HandleLook(const FInputActionValue& Value)
+{
+    const FVector2D LookAxis = Value.Get<FVector2D>();
+
+    const float YawInput   = LookAxis.X; // Mouse/gamepad X → yaw
+    const float PitchInput = LookAxis.Y; // Mouse/gamepad Y → pitch (invert via modifiers if desired)
+
+    AddControllerYawInput(YawInput);
+    AddControllerPitchInput(PitchInput);
+}
+*/
+
+void ABallPawn::TurnCamera(const FInputActionValue& Value)
+{
+    const float Axis = Value.Get<float>();
+    AddControllerYawInput(Axis);
+}
+
+void ABallPawn::LookUpCamera(const FInputActionValue& Value)
+{
+    const float Axis = Value.Get<float>();
+    AddControllerPitchInput(Axis);
+}
+
+void ABallPawn::HandleJump(const FInputActionValue& Value)
+{
+    // Digital action; we only care that it fired
+    if (IsLocallyControlled())
+    {
+        Server_Jump();
+    }
+}
+// Old code using deprecated Input System--vvvv
+/* void ABallPawn::MoveForward(float Value)
 {
     CachedForwardInput = Value;
 
@@ -143,7 +266,7 @@ void ABallPawn::JumpPressed()
         Server_Jump();
     }
 }
-
+*/
 // ----------------- Server RPC implementations -----------------
 
 void ABallPawn::Server_AddMovementInput_Implementation(float ForwardValue, float RightValue)

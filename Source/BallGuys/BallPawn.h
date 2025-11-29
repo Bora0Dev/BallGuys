@@ -10,12 +10,17 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
-#include "BallPawn.generated.h"
+#include "InputActionValue.h"
+#include "Components/InputComponent.h"
+#include "BallPawn.generated.h" // "...generated.h ALWAYS LAST in #include(s)
+
 
 // Forward declarations
 class UStaticMeshComponent;
 class USpringArmComponent;
 class UCameraComponent;
+class UInputMappingContext;
+class UInputAction;
 
 UCLASS()
 class BALLGUYS_API ABallPawn : public APawn
@@ -51,6 +56,39 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     UCameraComponent* Camera;
 
+    //---- Enhanced Input-------
+
+    /** Mapping context for this pawn (move, look, jump). Assign IMC_BallPawn in BP. */
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input")
+    UInputMappingContext* DefaultMappingContext;
+
+    /** Move action (Axis2D). Assign IA_Move in BP. */
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input")
+    UInputAction* MoveAction;
+
+    /** Look action (Axis2D). Assign IA_Look in BP. */
+   /* UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input")
+    UInputAction* LookAction; */
+
+    /** Turn action (Axis1D). Assign IA_Turn in BP. */
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input")
+    UInputAction* TurnAction;
+
+    /** LookUp action (Axis1D). Assign IA_LookUp in BP. */
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input")
+    UInputAction* LookUpAction;
+    
+    /** Jump-action (Digital). Assign IA_Jump in BP. */
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input")
+    UInputAction* JumpAction;
+
+    //------------ Input handlers (client-side)
+    void HandleMove(const FInputActionValue& Value);
+    // void HandleLook(const FInputActionValue& Value);
+    void HandleJump(const FInputActionValue& Value);
+    void TurnCamera(const FInputActionValue& Value);
+    void LookUpCamera(const FInputActionValue& Value);
+    
     // ----------------- Movement tuning -----------------
 
     /** How strong the torque is when trying to roll the ball. */
@@ -77,16 +115,16 @@ protected:
     /** Last frame's right input (from -1 to 1). Only meaningful on the owning client. */
     float CachedRightInput;
 
-    // ----------------- Input handlers (client side) -----------------
+    // ----------------- OLD Input handlers (client side) -----------------
 
     /** Called by input system on the owning client. */
-    void MoveForward(float Value);
+    //void MoveForward(float Value);
 
     /** Called by input system on the owning client. */
-    void MoveRight(float Value);
+    //void MoveRight(float Value);
 
     /** Called by input system when Jump is pressed on the owning client. */
-    void JumpPressed();
+    //void JumpPressed();
 
     // ----------------- Server RPCs -----------------
 
