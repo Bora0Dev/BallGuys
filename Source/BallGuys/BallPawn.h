@@ -82,13 +82,30 @@ protected:
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input")
     UInputAction* JumpAction;
 
-    //------------ Input handlers (client-side)
+    // Invert X+Y AXIS toggle actions (digital)
+    UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Input")
+    UInputAction* InvertXAction;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Inputs")
+    UInputAction* InvertYAction;
+
+    // Per-player X+Y AXIS settings (local only, no replication needed)
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
+    bool bInvertTurnAxis = false;  // X (left/right)
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
+    bool bInvertLookUpAxis = false; // Y (up/down)
+
+    //---- Input handlers (client-side)------
     void HandleMove(const FInputActionValue& Value);
-    // void HandleLook(const FInputActionValue& Value);
+    /* void HandleLook(const FInputActionValue& Value); *///Old look Input Axis2D
     void HandleJump(const FInputActionValue& Value);
-    void TurnCamera(const FInputActionValue& Value);
-    void LookUpCamera(const FInputActionValue& Value);
-    
+    void TurnCamera(const FInputActionValue& Value);//X-Axis
+    void LookUpCamera(const FInputActionValue& Value);//Y-Axis
+
+    //----invert X+Y AXIS toggle handlers-----------
+    void HandleInvertX(const FInputActionValue& Value);
+    void HandleInvertY(const FInputActionValue& Value);
     // ----------------- Movement tuning -----------------
 
     /** How strong the torque is when trying to roll the ball. */
