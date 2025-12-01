@@ -61,8 +61,8 @@ ABallPawn::ABallPawn()
 
     // ----------------- Movement tuning defaults -----------------
 
-    TorqueStrength        = 25.f;  // "How hard we roll" changed to 25 from 5,000,000
-    JumpImpulse           = 600.f;    // "How hard we jump" changed to 600 from 250,000
+    TorqueStrength        = 40.f;  // "How hard we roll" changed to 25 from 5,000,000
+    JumpImpulse           = 1000.f;    // "How hard we jump" changed to 600 from 250,000
     GroundCheckDistance   = -45.f;        // Distance below the ball to look for ground DO NOT GO PAST -49.f
     KnockImpulseStrength  = 200000.f;    // Impulse to shove other balls
 
