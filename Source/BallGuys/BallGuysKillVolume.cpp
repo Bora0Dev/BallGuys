@@ -13,8 +13,7 @@ ABallGuysKillVolume::ABallGuysKillVolume()
 
 	KillBox->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	KillBox->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
-	KillBox->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
-	KillBox->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
+	KillBox->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
 }
 
 void ABallGuysKillVolume::BeginPlay()
@@ -31,12 +30,15 @@ void ABallGuysKillVolume::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AA
 {
 	if (OtherActor && (OtherActor != this))
 	{
+		UE_LOG(LogTemp, Warning, TEXT("KillVolume Overlap with: %s"), *OtherActor->GetName());
+
 		ABallPawn* PlayerPawn = Cast<ABallPawn>(OtherActor);
 		if (PlayerPawn)
 		{
 			ABallGuysGameMode* GameMode = Cast<ABallGuysGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
 			if (GameMode)
 			{
+				UE_LOG(LogTemp, Warning, TEXT("KillVolume killing pawn: %s"), *PlayerPawn->GetName());
 				GameMode->PlayerDied(PlayerPawn->GetController());
 			}
 		}

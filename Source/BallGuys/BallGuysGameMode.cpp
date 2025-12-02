@@ -55,12 +55,12 @@ void ABallGuysGameMode::HandleGameLoop()
 {
 	if (!BallGuysGameState) return;
 
-	int32 NumPlayers = GetNumPlayers();
+	int32 CurrentPlayerCount = GetNumPlayers();
 
 	// Waiting for players / Ready Logic
 	if (BallGuysGameState->CurrentGamePhase == EBallGuysGamePhase::WaitingForPlayers)
 	{
-		if (NumPlayers >= MIN_PLAYERS_TO_START)
+		if (CurrentPlayerCount >= MIN_PLAYERS_TO_START)
 		{
 			CheckReadyStatus();
 		}

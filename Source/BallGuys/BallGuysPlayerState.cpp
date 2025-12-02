@@ -8,6 +8,11 @@ ABallGuysPlayerState::ABallGuysPlayerState()
 	bReplicates = true;
 }
 
+void ABallGuysPlayerState::BeginPlay()
+{
+	Super::BeginPlay();
+}
+
 void ABallGuysPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
