@@ -12,6 +12,7 @@
 #include "GameFramework/Pawn.h"
 #include "InputActionValue.h"
 #include "Components/InputComponent.h"
+#include "Net/UnrealNetwork.h"
 #include "BallPawn.generated.h" // "...generated.h ALWAYS LAST in #include(s)
 
 
@@ -86,7 +87,7 @@ protected:
     UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Input")
     UInputAction* InvertXAction;
 
-    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Inputs")
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input")
     UInputAction* InvertYAction;
 
     // Per-player X+Y AXIS settings (local only, no replication needed)
@@ -96,6 +97,40 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
     bool bInvertLookUpAxis = false; // Y (up/down)
 
+    //-------------Boost input--------------
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input")
+    UInputAction* BoostAction;
+
+    //-------------Boost Settings------------
+    /** How much to multiply torque/knock strength while boosting. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Boost")
+    float BoostMultiplier = 2.f;
+
+    /** How long the boost lasts (seconds). */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Boost")
+    float BoostDuration = 1.f;
+
+    /** How long before we can boost again (seconds). */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Boost")
+    float BoostCooldown = 5.f;
+
+    /** True while the boost is active. Replicated for UI / FX. */
+    UPROPERTY(Replicated, BlueprintReadOnly, Category="Boost")
+    bool bIsBoosting = false;
+
+    /** Time left on the current boost (seconds). */
+    UPROPERTY(Replicated, BlueprintReadOnly, Category="Boost")
+    float BoostTimeRemaining = 0.f;
+
+    /** Time left on cooldown before we can boost again (seconds). */
+    UPROPERTY(Replicated, BlueprintReadOnly, Category="Boost")
+    float CooldownTimeRemaining = 0.f;
+
+    /** Base (non-boosted) values so we can restore after boost. */
+    float BaseTorqueStrength = 0.f;
+    float BaseKnockImpulseStrength = 0.f;
+
+    
     //---- Input handlers (client-side)------
     void HandleMove(const FInputActionValue& Value);
     /* void HandleLook(const FInputActionValue& Value); *///Old look Input Axis2D
@@ -106,6 +141,10 @@ protected:
     //----invert X+Y AXIS toggle handlers-----------
     void HandleInvertX(const FInputActionValue& Value);
     void HandleInvertY(const FInputActionValue& Value);
+
+    //------Boost input handler---------------------
+    void HandleBoost(const FInputActionValue& Value);
+    
     // ----------------- Movement tuning -----------------
 
     /** How strong the torque is when trying to roll the ball. */
@@ -156,6 +195,10 @@ protected:
      */
     UFUNCTION(Server, Reliable)
     void Server_Jump();
+
+    /** Server-side Boost Handler to start boost (authority decides) */
+    UFUNCTION(Server, Reliable)
+    void Server_TryBoost();
 
     // ----------------- Helpers -----------------
 

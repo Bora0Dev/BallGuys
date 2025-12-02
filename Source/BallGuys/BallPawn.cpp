@@ -68,6 +68,10 @@ ABallPawn::ABallPawn()
 
     CachedForwardInput = 0.f;
     CachedRightInput   = 0.f;
+
+    // Saving base values so boost can scale them
+    BaseTorqueStrength = TorqueStrength;
+    BaseKnockImpulseStrength = KnockImpulseStrength;
 }
 
 void ABallPawn::BeginPlay()
@@ -115,8 +119,47 @@ void ABallPawn::Tick(float DeltaSeconds)
         }
         bWasGroundedLastFrame = bNowGrounded;
     } */ // part of the how to break a jump with booleans lesson
-}
 
+    // Tick, tick....BOOST!
+    // Only the server updates the boost timers / state
+    if (HasAuthority())
+    {
+        // Handle active boost
+        if (bIsBoosting)
+        {
+            BoostTimeRemaining -= DeltaSeconds;
+            if (BoostTimeRemaining <= 0.f)
+            {
+                bIsBoosting        = false;
+                BoostTimeRemaining = 0.f;
+
+                // Restore normal strengths
+                TorqueStrength       = BaseTorqueStrength;
+                KnockImpulseStrength = BaseKnockImpulseStrength;
+            }
+        }
+
+        // Handle cooldown ticking down
+        if (CooldownTimeRemaining > 0.f)
+        {
+            CooldownTimeRemaining -= DeltaSeconds;
+            if (CooldownTimeRemaining < 0.f)
+            {
+                CooldownTimeRemaining = 0.f;
+            }
+        }
+    }
+}
+//---------------Boost Replication------------------------------
+void ABallPawn::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps)  const
+{
+    Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+    DOREPLIFETIME(ABallPawn, bIsBoosting);
+    DOREPLIFETIME(ABallPawn, BoostTimeRemaining);
+    DOREPLIFETIME(ABallPawn, CooldownTimeRemaining);
+}
+//---------Setting up Player Input Component--------------------
 void ABallPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
     Super::SetupPlayerInputComponent(PlayerInputComponent);
@@ -183,6 +226,11 @@ void ABallPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
             EnhancedInput->BindAction(JumpAction, ETriggerEvent::Started, this, &ABallPawn::HandleJump);
         }
 
+        //---------BOOST------------
+        if (BoostAction)
+        {
+            EnhancedInput->BindAction(BoostAction,ETriggerEvent::Started, this, &ABallPawn::HandleBoost);
+        }
         // X and Y invert axes toggles
         if (InvertXAction)
         {
@@ -318,6 +366,20 @@ void ABallPawn::JumpPressed()
     }
 }
 */
+//--------------Boost Client-side input handler------------------
+void  ABallPawn::HandleBoost(const FInputActionValue& Value)
+{
+    const bool bPressed = Value.Get<bool>();
+    if (!bPressed)
+    {
+        return;  // We only care about the press not the release
+    }
+
+    if (IsLocallyControlled())
+    {
+        Server_TryBoost();
+    }
+}
 // ----------------- Server RPC implementations -----------------
 
 void ABallPawn::Server_AddMovementInput_Implementation(float ForwardValue, float RightValue)
@@ -404,6 +466,28 @@ void ABallPawn::Server_Jump_Implementation()
    /* bHasJumpedSinceLastGround = true; */
 }
 
+//-----------Sever-side Boost logic----------------
+void ABallPawn::Server_TryBoost_Implementation()
+{
+ // Only the server controls the boost state
+ if (bIsBoosting)
+ {
+     return;  // already boosting
+ }
+    if (CooldownTimeRemaining> 0.f)
+    {
+        return; // still on cooldown
+    }
+
+    // Start Boost
+    bIsBoosting           = true;
+    BoostTimeRemaining    = BoostDuration;
+    CooldownTimeRemaining = BoostCooldown;
+
+    // Apply boosted strengths
+    TorqueStrength        = BaseTorqueStrength * BoostMultiplier;
+    KnockImpulseStrength  = BaseKnockImpulseStrength * BoostMultiplier;
+}
 // ----------------- Ground check -----------------
 
 bool ABallPawn::IsGrounded() const
