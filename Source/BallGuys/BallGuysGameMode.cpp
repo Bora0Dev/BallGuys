@@ -3,6 +3,7 @@
 #include "BallGuysPlayerState.h"
 #include "BallGuysPlayerController.h"
 #include "BallPawn.h"
+#include "BallGuysHUD.h"
 #include "GameFramework/PlayerStart.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -16,6 +17,7 @@ ABallGuysGameMode::ABallGuysGameMode()
 	PlayerControllerClass = ABallGuysPlayerController::StaticClass();
 	// DefaultPawnClass should be set in BP or here if BallPawn is the only pawn
 	DefaultPawnClass = ABallPawn::StaticClass();
+	HUDClass = ABallGuysHUD::StaticClass();
 
 	CountdownTimer = 0.0f;
 	GameTimer = GAME_DURATION;

@@ -34,4 +34,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "BallGuys Gameplay")
 	void SetGamePhase(EBallGuysGamePhase NewPhase);
+
+	UFUNCTION(BlueprintPure, Category = "BallGuys Gameplay")
+	FText GetFormattedTimeRemaining() const;
+
+	UFUNCTION(BlueprintPure, Category = "BallGuys Gameplay")
+	FText GetGamePhaseName() const;
 };

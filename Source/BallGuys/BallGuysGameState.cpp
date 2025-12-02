@@ -22,3 +22,27 @@ void ABallGuysGameState::SetGamePhase(EBallGuysGamePhase NewPhase)
 		CurrentGamePhase = NewPhase;
 	}
 }
+
+FText ABallGuysGameState::GetFormattedTimeRemaining() const
+{
+	int32 Minutes = FMath::FloorToInt(TimeRemaining / 60.0f);
+	int32 Seconds = FMath::FloorToInt(TimeRemaining) % 60;
+	return FText::FromString(FString::Printf(TEXT("%02d:%02d"), Minutes, Seconds));
+}
+
+FText ABallGuysGameState::GetGamePhaseName() const
+{
+	switch (CurrentGamePhase)
+	{
+	case EBallGuysGamePhase::WaitingForPlayers:
+		return FText::FromString("Waiting for Players");
+	case EBallGuysGamePhase::Countdown:
+		return FText::FromString("Starting in...");
+	case EBallGuysGamePhase::Playing:
+		return FText::FromString("Playing");
+	case EBallGuysGamePhase::GameOver:
+		return FText::FromString("Game Over");
+	default:
+		return FText::FromString("Unknown");
+	}
+}
