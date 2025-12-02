@@ -37,6 +37,7 @@ ABallPawn::ABallPawn()
     // Make sure hit events are generated (for NotifyHit)
     MeshComp->SetNotifyRigidBodyCollision(true);
     MeshComp->BodyInstance.bNotifyRigidBodyCollision = true;
+    MeshComp->SetGenerateOverlapEvents(true);
 
     // Create a spring arm
     SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
