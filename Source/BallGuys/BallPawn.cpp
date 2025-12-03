@@ -213,10 +213,23 @@ void ABallPawn::HandleMove(const FInputActionValue& Value)
     CachedForwardInput = ForwardValue;
     CachedRightInput   = RightValue;
 
-    if (IsLocallyControlled())
+    if (!IsLocallyControlled())
     {
-        Server_AddMovementInput(ForwardValue, RightValue);
+        return;
     }
+    
+    //if (IsLocallyControlled())
+    // Get the *local* camera/controller rotation on this client
+    FRotator ControlRot = FRotator::ZeroRotator;
+    if (AController* PC = Controller)
+    {
+        ControlRot = PC->GetControlRotation();
+        //Server_AddMovementInput(ForwardValue, RightValue,
+            //ControlRot /*added to fix client camera rotation*/);
+    }
+    
+    // Send axis + control rotation to the server
+    Server_AddMovementInput(ForwardValue, RightValue, ControlRot);
 }
 
 // Turn camera
@@ -283,7 +296,7 @@ void  ABallPawn::HandleBoost(const FInputActionValue& Value)
 {
     const bool bPressed = Value.Get<bool>();
     //----DEBUG------
-    if (GEngine)
+    /* if (GEngine)
     {
         GEngine->AddOnScreenDebugMessage(
             -1, 1.5f, FColor::Green,
@@ -292,7 +305,7 @@ void  ABallPawn::HandleBoost(const FInputActionValue& Value)
                 IsLocallyControlled()? 1 : 0,
                 static_cast<int32>(GetLocalRole()))
                 );
-    }
+    } */
     // Only the locally controlled pawn should send the RPC
     if (!IsLocallyControlled())
     {
@@ -310,7 +323,10 @@ void  ABallPawn::HandleBoost(const FInputActionValue& Value)
 }
 // ----------------- Server RPC implementations -----------------
 
-void ABallPawn::Server_AddMovementInput_Implementation(float ForwardValue, float RightValue)
+void ABallPawn::Server_AddMovementInput_Implementation(
+    float ForwardValue,
+    float RightValue,
+    FRotator ControlRot)
 {
     // This runs on the SERVER.
     // We apply torque to the physics body, and the resulting movement
@@ -328,11 +344,11 @@ void ABallPawn::Server_AddMovementInput_Implementation(float ForwardValue, float
     }
 
     // Use the controller's yaw as our input space, like a typical third-person game
-    FRotator ControlRot = FRotator::ZeroRotator;//old code GetActorRotation();
+    /* FRotator ControlRot = FRotator::ZeroRotator;//old code GetActorRotation();
     if (AController* PC = Controller)
     {
         ControlRot = PC->GetControlRotation();
-    }
+    } */
 
     // We only care about yaw (XZ plane)
     FRotator YawRot(0.f, ControlRot.Yaw, 0.f);
