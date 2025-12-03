@@ -173,7 +173,8 @@ protected:
      *  Called from the owning client with the latest axis values.
      */
     UFUNCTION(Server, Reliable)
-    void Server_AddMovementInput(float ForwardValue, float RightValue);
+    void Server_AddMovementInput(float ForwardValue, float RightValue,
+        FRotator ControlRot /*added to fix client camera control*/);
 
     /** Server-side jump handler.
      *  Called from the owning client when jump input is pressed.
