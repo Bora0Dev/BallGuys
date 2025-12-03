@@ -221,7 +221,16 @@ void ABallPawn::HandleMove(const FInputActionValue& Value)
 {
     // Expecting a 2D axis (X = Right, Y = Forward)
     const FVector2D MoveAxis = Value.Get<FVector2D>();
-
+    //DEBUG FOR CONTROLLER--------------
+    if (GEngine)
+    {
+        GEngine->AddOnScreenDebugMessage(
+            -1, 1.f, FColor::Green,
+            FString::Printf(TEXT("HandleMove: X=%.2f Y=%.2f  (Local=%d)"),
+                MoveAxis.X, MoveAxis.Y,
+                IsLocallyControlled() ? 1 : 0));
+    }
+    //----END DEBUG-------
     const float ForwardValue = MoveAxis.Y;
     const float RightValue   = MoveAxis.X;
 
@@ -249,7 +258,16 @@ void ABallPawn::HandleMove(const FInputActionValue& Value)
 void ABallPawn::TurnCamera(const FInputActionValue& Value)
 {
     float Axis = Value.Get<float>();
-
+    //DEBUG FOR CONTROLLER--------------
+    if (GEngine)
+    {
+        GEngine->AddOnScreenDebugMessage(
+            -1, 1.f, FColor::Green,
+            FString::Printf(TEXT("TurnCamera: X=%.2f (Local=%d)"),
+                Axis,
+                IsLocallyControlled() ? 1 : 0));
+    }
+    //----END DEBUG-------
     if (bInvertTurnAxis)
     {
         Axis *= -1.f;
@@ -261,7 +279,16 @@ void ABallPawn::TurnCamera(const FInputActionValue& Value)
 void ABallPawn::LookUpCamera(const FInputActionValue& Value)
 {
     float Axis = Value.Get<float>();
-
+    //DEBUG FOR CONTROLLER--------------
+    if (GEngine)
+    {
+        GEngine->AddOnScreenDebugMessage(
+            -1, 1.f, FColor::Green,
+            FString::Printf(TEXT("LookUp: Y=%.2f  (Local=%d)"),
+                Axis,
+                IsLocallyControlled() ? 1 : 0));
+    }
+    //----END DEBUG-------
     if (bInvertLookUpAxis)
     {
         Axis *= -1.f;
@@ -311,6 +338,19 @@ void ABallPawn::HandleJump(const FInputActionValue& Value)
 void  ABallPawn::HandleBoost(const FInputActionValue& Value)
 {
     const bool bPressed = Value.Get<bool>();
+    // ---- DEBUG FOR CONTROLLER ----
+    if (GEngine)
+    {
+        GEngine->AddOnScreenDebugMessage(
+            -1, 1.5f, FColor::Green,
+            FString::Printf(TEXT("HandleBoost: Pressed=%d, Local=%d, Role=%d"),
+                bPressed ? 1 : 0,
+                IsLocallyControlled() ? 1 : 0,
+                static_cast<int32>(GetLocalRole()))
+        );
+    }
+    // ---- END DEBUG ----
+    
     // Only the locally controlled pawn should send the RPC
     if (!IsLocallyControlled())
     {
