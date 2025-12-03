@@ -111,8 +111,11 @@ protected:
     float BoostCooldown = 5.f;
 
     /** True while the boost is active. Replicated for UI / FX. */
-    UPROPERTY(Replicated, BlueprintReadOnly, Category="Boost")
+    UPROPERTY(ReplicatedUsing=OnRep_IsBoosting, BlueprintReadOnly, Category="Boost")
     bool bIsBoosting = false;
+
+    UFUNCTION()
+    void OnRep_IsBoosting();
 
     /** Time left on the current boost (seconds). */
     UPROPERTY(Replicated, BlueprintReadOnly, Category="Boost")
@@ -139,7 +142,16 @@ protected:
     void HandleInvertY(const FInputActionValue& Value);
 
     //------Boost input handler---------------------
+    //------Boost input handler---------------------
     void HandleBoost(const FInputActionValue& Value);
+
+    // ----------------- Shared Movement Logic (Client + Server) -----------------
+    
+    /** Applies movement forces based on input. Called by both HandleMove (Client) and Server_AddMovementInput (Server). */
+    void ApplyMovementInput(float ForwardValue, float RightValue);
+
+    /** Applies jump impulse. Called by both HandleJump (Client) and Server_Jump (Server). */
+    void ApplyJump();
     
     // ----------------- Movement tuning -----------------
 

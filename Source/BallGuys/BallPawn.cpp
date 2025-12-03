@@ -44,6 +44,8 @@ ABallPawn::ABallPawn()
     SpringArm->SetupAttachment(MeshComp);
     SpringArm->TargetArmLength = 600.f;
     SpringArm->bUsePawnControlRotation = true; // Camera rotates with controller yaw/pitch
+    SpringArm->bEnableCameraLag = true;
+    SpringArm->CameraLagSpeed = 15.f;
 
     // Create a camera
     Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
@@ -129,6 +131,20 @@ void ABallPawn::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetim
     DOREPLIFETIME(ABallPawn, BoostTimeRemaining);
     DOREPLIFETIME(ABallPawn, CooldownTimeRemaining);
 }
+
+void ABallPawn::OnRep_IsBoosting()
+{
+    if (bIsBoosting)
+    {
+        TorqueStrength = BaseTorqueStrength * BoostMultiplier;
+        KnockImpulseStrength = BaseKnockImpulseStrength * BoostMultiplier;
+    }
+    else
+    {
+        TorqueStrength = BaseTorqueStrength;
+        KnockImpulseStrength = BaseKnockImpulseStrength;
+    }
+}
 //---------Setting up Player Input Component--------------------
 void ABallPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
@@ -213,23 +229,13 @@ void ABallPawn::HandleMove(const FInputActionValue& Value)
     CachedForwardInput = ForwardValue;
     CachedRightInput   = RightValue;
 
-    if (!IsLocallyControlled())
+    // Client-side prediction: Apply force immediately
+    ApplyMovementInput(ForwardValue, RightValue);
+
+    if (IsLocallyControlled())
     {
-        return;
+        Server_AddMovementInput(ForwardValue, RightValue);
     }
-    
-    //if (IsLocallyControlled())
-    // Get the *local* camera/controller rotation on this client
-    FRotator ControlRot = FRotator::ZeroRotator;
-    if (AController* PC = Controller)
-    {
-        ControlRot = PC->GetControlRotation();
-        //Server_AddMovementInput(ForwardValue, RightValue,
-            //ControlRot /*added to fix client camera rotation*/);
-    }
-    
-    // Send axis + control rotation to the server
-    Server_AddMovementInput(ForwardValue, RightValue, ControlRot);
 }
 
 // Turn camera
@@ -285,6 +291,9 @@ void ABallPawn::HandleInvertY(const FInputActionValue& Value)
 void ABallPawn::HandleJump(const FInputActionValue& Value)
 {
     // Digital action; we only care that it fired
+    // Client-side prediction
+    ApplyJump();
+
     if (IsLocallyControlled())
     {
         Server_Jump();
@@ -295,43 +304,24 @@ void ABallPawn::HandleJump(const FInputActionValue& Value)
 void  ABallPawn::HandleBoost(const FInputActionValue& Value)
 {
     const bool bPressed = Value.Get<bool>();
-    //----DEBUG------
-    /* if (GEngine)
-    {
-        GEngine->AddOnScreenDebugMessage(
-            -1, 1.5f, FColor::Green,
-            FString::Printf(TEXT("HandleBoost: Pressed=%d, Local=%d, Role=%d"),
-                bPressed? 1 : 0,
-                IsLocallyControlled()? 1 : 0,
-                static_cast<int32>(GetLocalRole()))
-                );
-    } */
     // Only the locally controlled pawn should send the RPC
     if (!IsLocallyControlled())
     {
         return;
     }
     
-    /* const bool bPressed = Value.Get<bool>(); */
     if (!bPressed)
     {
         return;  // We only care about the press not the release
     }
 
     Server_TryBoost();
-    
 }
-// ----------------- Server RPC implementations -----------------
 
-void ABallPawn::Server_AddMovementInput_Implementation(
-    float ForwardValue,
-    float RightValue,
-    FRotator ControlRot)
+// ----------------- Shared Movement Logic -----------------
+
+void ABallPawn::ApplyMovementInput(float ForwardValue, float RightValue)
 {
-    // This runs on the SERVER.
-    // We apply torque to the physics body, and the resulting movement
-    // replicates to all clients via bReplicateMovement.
-
     if (!MeshComp || !MeshComp->IsSimulatingPhysics())
     {
         return;
@@ -343,12 +333,12 @@ void ABallPawn::Server_AddMovementInput_Implementation(
         return;
     }
 
-    // Use the controller's yaw as our input space, like a typical third-person game
-    /* FRotator ControlRot = FRotator::ZeroRotator;//old code GetActorRotation();
-    if (AController* PC = Controller)
+    // Use the controller's yaw as our input space
+    FRotator ControlRot = FRotator::ZeroRotator;
+    if (AController* PC = GetController())
     {
         ControlRot = PC->GetControlRotation();
-    } */
+    }
 
     // We only care about yaw (XZ plane)
     FRotator YawRot(0.f, ControlRot.Yaw, 0.f);
@@ -357,7 +347,7 @@ void ABallPawn::Server_AddMovementInput_Implementation(
     const FVector ForwardDir = FRotationMatrix(YawRot).GetUnitAxis(EAxis::X);
     const FVector RightDir   = FRotationMatrix(YawRot).GetUnitAxis(EAxis::Y);
 
-    // Desired move direction in the world (where we want the ball to roll)
+    // Desired move direction in the world
     FVector MoveDir = ForwardDir * ForwardValue + RightDir * RightValue;
 
     if (MoveDir.IsNearlyZero())
@@ -367,11 +357,9 @@ void ABallPawn::Server_AddMovementInput_Implementation(
 
     MoveDir.Normalize();
 
-    // To make a sphere roll in MoveDir, we want a torque axis perpendicular
-    // to MoveDir and Up. Using the right-hand rule:
-    //   TorqueAxis = MoveDir x Up
+    // TorqueAxis = MoveDir x Up
     const FVector Up = FVector::UpVector;
-    FVector TorqueAxis = FVector::CrossProduct(/* MoveDir,*/ Up, MoveDir);
+    FVector TorqueAxis = FVector::CrossProduct(Up, MoveDir);
 
     if (TorqueAxis.IsNearlyZero())
     {
@@ -385,27 +373,22 @@ void ABallPawn::Server_AddMovementInput_Implementation(
     // Add torque in radians (physics-space)
     MeshComp->AddTorqueInRadians(Torque, NAME_None, true);
 }
-//---------- Server Jump Implementation --------
-void ABallPawn::Server_Jump_Implementation()
+
+void ABallPawn::ApplyJump()
 {
-    // Only jump on server (authoritative)
     if (!MeshComp || !MeshComp->IsSimulatingPhysics())
     {
         return;
     }
 
-    // Simple grounded check so we can't spam jump in midair
-    // Must be GROUNDED and NOT have jumped since last frame
-   if (!IsGrounded() /* || bHasJumpedSinceLastGround */)
+    // Simple grounded check
+    if (!IsGrounded())
     {
         return;
     }
 
     const FVector Impulse = FVector::UpVector * JumpImpulse;
-
-    // VelChange=true makes the impulse independent of mass (feels more “gamey”)
     MeshComp->AddImpulse(Impulse, NAME_None, true);
-    
 }
 
 //-----------Sever-side Boost logic----------------
@@ -436,8 +419,7 @@ void ABallPawn::Server_TryBoost_Implementation()
     CooldownTimeRemaining = BoostCooldown;
 
     // Apply boosted strengths
-    TorqueStrength        = BaseTorqueStrength * BoostMultiplier;
-    KnockImpulseStrength  = BaseKnockImpulseStrength * BoostMultiplier;
+    OnRep_IsBoosting();
     
 }
 // ----------------- Ground check -----------------
@@ -536,6 +518,28 @@ void ABallPawn::NotifyHit(
 
     // Apply impulse at the hit location for a more physical feel
     OtherComp->AddImpulseAtLocation(Impulse, HitLocation);
+}
+
+// ----------------- Server RPC implementations -----------------
+
+void ABallPawn::Server_AddMovementInput_Implementation(float ForwardValue, float RightValue)
+{
+    // Server also applies the force (authoritative simulation)
+    // Avoid double application on Listen Server host
+    if (!IsLocallyControlled()) 
+    {
+        ApplyMovementInput(ForwardValue, RightValue);
+    }
+}
+
+void ABallPawn::Server_Jump_Implementation()
+{
+    // Only jump on server (authoritative)
+    // Avoid double application on Listen Server host
+    if (!IsLocallyControlled())
+    {
+        ApplyJump();
+    }
 }
 
 
