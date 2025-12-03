@@ -16,7 +16,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputMappingContext.h"
 #include "InputAction.h"
-
+#include "Net/UnrealNetwork.h"
 
 ABallPawn::ABallPawn()
 {
@@ -62,8 +62,8 @@ ABallPawn::ABallPawn()
 
     // ----------------- Movement tuning defaults -----------------
 
-    TorqueStrength        = 40.f;  // "How hard we roll" changed to 25 from 5,000,000
-    JumpImpulse           = 1000.f;    // "How hard we jump" changed to 600 from 250,000
+    TorqueStrength        = 40.f;  // "How hard we roll" 
+    JumpImpulse           = 1000.f;    // "How hard we jump"
     GroundCheckDistance   = -45.f;        // Distance below the ball to look for ground DO NOT GO PAST -49.f
     KnockImpulseStrength  = 200000.f;    // Impulse to shove other balls
 
@@ -78,49 +78,18 @@ ABallPawn::ABallPawn()
 void ABallPawn::BeginPlay()
 {
     Super::BeginPlay();
-    /*
-    // Add Enhanced Input mapping context on the owning client
-    if (APlayerController* PC = Cast<APlayerController>(GetController()))
-    {
-        if (ULocalPlayer* LP = PC->GetLocalPlayer())
-        {
-            if (UEnhancedInputLocalPlayerSubsystem* Subsys =
-                ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(LP))
-            {
-                if (DefaultMappingContext)
-                {
-                    Subsys->AddMappingContext(DefaultMappingContext, 0);
-                }
-            }
-        }
-    }
-    */
-    // At runtime, you'll usually have a Blueprint subclass of ABallPawn
-    // where you assign:
-    //  - the Static Mesh asset
-    //  - maybe Material, etc.
-    // This C++ class just defines behaviour + basic setup.
+    
+    // Caching base values once so boosts have something to multiply
+    BaseTorqueStrength = TorqueStrength;
+    BaseKnockImpulseStrength = KnockImpulseStrength;
+    
+   
 }
 
 void ABallPawn::Tick(float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
-
-    // We don't need to do anything each tick here yet.
-    // All movement is driven by input → RPC → physics on server.
-
-    /* if (HasAuthority())
-    {
-        const bool bNowGrounded = IsGrounded();
-
-        // We just "landed" this frame
-        if (bNowGrounded && !bWasGroundedLastFrame)
-        {
-            bHasJumpedSinceLastGround = false;  // allow new jump
-        }
-        bWasGroundedLastFrame = bNowGrounded;
-    } */ // part of the how to break a jump with booleans lesson
-
+ 
     // Tick, tick....BOOST!
     // Only the server updates the boost timers / state
     if (HasAuthority())
@@ -164,21 +133,6 @@ void ABallPawn::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetim
 void ABallPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
     Super::SetupPlayerInputComponent(PlayerInputComponent);
-
-    // Bind axes (legacy input system)
-    // Make sure you have these names set in Project Settings → Input.
-    /*
-    PlayerInputComponent->BindAxis(TEXT("MoveForward"), this, &ABallPawn::MoveForward);
-    PlayerInputComponent->BindAxis(TEXT("MoveRight"),   this, &ABallPawn::MoveRight);
-    
-    // Camera (uses built-in APawn helpers to rotate the controller)
-    PlayerInputComponent->BindAxis(TEXT("Turn"),   this, &APawn::AddControllerYawInput);
-    PlayerInputComponent->BindAxis(TEXT("LookUp"), this, &APawn::AddControllerPitchInput);
-
-    // Bind jump action
-    PlayerInputComponent->BindAction(TEXT("Jump"), IE_Pressed, this, &ABallPawn::JumpPressed);
-    */
-
     
     // Use EnhancedInputComponent instead of plain UInputComponent
     // 1) Add the mapping context for the LOCAL player that owns this pawn
@@ -206,12 +160,7 @@ void ABallPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
         {
             EnhancedInput->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ABallPawn::HandleMove);
         }
-        /* // OLD 2D axis camera input
-        if (LookAction)
-        {
-            EnhancedInput->BindAction(LookAction, ETriggerEvent::Triggered, this, &ABallPawn::HandleLook);
-        }
-        */
+        
         if (TurnAction)
         {
             EnhancedInput->BindAction(TurnAction, ETriggerEvent::Triggered, this, &ABallPawn::TurnCamera);
@@ -230,7 +179,7 @@ void ABallPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
         //---------BOOST------------
         if (BoostAction)
         {
-            EnhancedInput->BindAction(BoostAction,ETriggerEvent::Started, this, &ABallPawn::HandleBoost);
+            EnhancedInput->BindAction(BoostAction, ETriggerEvent::Started, this, &ABallPawn::HandleBoost);
         }
         // X and Y invert axes toggles
         if (InvertXAction)
@@ -264,19 +213,6 @@ void ABallPawn::HandleMove(const FInputActionValue& Value)
         Server_AddMovementInput(ForwardValue, RightValue);
     }
 }
-
-/*
-void ABallPawn::HandleLook(const FInputActionValue& Value)
-{
-    const FVector2D LookAxis = Value.Get<FVector2D>();
-
-    const float YawInput   = LookAxis.X; // Mouse/gamepad X → yaw
-    const float PitchInput = LookAxis.Y; // Mouse/gamepad Y → pitch (invert via modifiers if desired)
-
-    AddControllerYawInput(YawInput);
-    AddControllerPitchInput(PitchInput);
-}
-*/
 
 // Turn camera
 void ABallPawn::TurnCamera(const FInputActionValue& Value)
@@ -336,50 +272,24 @@ void ABallPawn::HandleJump(const FInputActionValue& Value)
         Server_Jump();
     }
 }
-// Old code using deprecated Input System--vvvv
-/* void ABallPawn::MoveForward(float Value)
-{
-    CachedForwardInput = Value;
 
-    // Only the owning client should send input to the server
-    if (IsLocallyControlled())
-    {
-        // Send both axes so the server has the full input vector
-        Server_AddMovementInput(CachedForwardInput, CachedRightInput);
-    }
-}
-
-void ABallPawn::MoveRight(float Value)
-{
-    CachedRightInput = Value;
-
-    if (IsLocallyControlled())
-    {
-        Server_AddMovementInput(CachedForwardInput, CachedRightInput);
-    }
-}
-
-void ABallPawn::JumpPressed()
-{
-    if (IsLocallyControlled())
-    {
-        Server_Jump();
-    }
-}
-*/
 //--------------Boost Client-side input handler------------------
 void  ABallPawn::HandleBoost(const FInputActionValue& Value)
 {
+    // Only the locally controlled pawn should send the RPC
+    if (!IsLocallyControlled())
+    {
+        return;
+    }
+    
     const bool bPressed = Value.Get<bool>();
     if (!bPressed)
     {
         return;  // We only care about the press not the release
     }
 
-    if (IsLocallyControlled())
-    {
-        Server_TryBoost();
-    }
+    Server_TryBoost();
+    
 }
 // ----------------- Server RPC implementations -----------------
 
@@ -442,7 +352,7 @@ void ABallPawn::Server_AddMovementInput_Implementation(float ForwardValue, float
     // Add torque in radians (physics-space)
     MeshComp->AddTorqueInRadians(Torque, NAME_None, true);
 }
-
+//---------- Server Jump Implementation --------
 void ABallPawn::Server_Jump_Implementation()
 {
     // Only jump on server (authoritative)
@@ -462,15 +372,22 @@ void ABallPawn::Server_Jump_Implementation()
 
     // VelChange=true makes the impulse independent of mass (feels more “gamey”)
     MeshComp->AddImpulse(Impulse, NAME_None, true);
-
-    // Lock out further jumps until we leave ground and jump again
-   /* bHasJumpedSinceLastGround = true; */
+    
 }
 
 //-----------Sever-side Boost logic----------------
 void ABallPawn::Server_TryBoost_Implementation()
 {
- // Only the server controls the boost state
+    // DEBUG
+    if (GEngine)
+    {
+        GEngine->AddOnScreenDebugMessage(
+            -1, 2.f, FColor::Yellow,
+            FString::Printf(TEXT("Server_TryBoost: Cooldown set to %.2f"), BoostCooldown)
+            );
+    }
+    
+    // Only the server controls the boost state
  if (bIsBoosting)
  {
      return;  // already boosting
@@ -488,6 +405,7 @@ void ABallPawn::Server_TryBoost_Implementation()
     // Apply boosted strengths
     TorqueStrength        = BaseTorqueStrength * BoostMultiplier;
     KnockImpulseStrength  = BaseKnockImpulseStrength * BoostMultiplier;
+    
 }
 // ----------------- Ground check -----------------
 
