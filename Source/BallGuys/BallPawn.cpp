@@ -181,6 +181,11 @@ void ABallPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
         {
             EnhancedInput->BindAction(BoostAction, ETriggerEvent::Started, this, &ABallPawn::HandleBoost);
         }
+        // Testing HandleBoost with JumpAction binding
+        /* if (JumpAction)
+        {
+            EnhancedInput->BindAction(JumpAction, ETriggerEvent::Started, this, &ABallPawn::/* HandleJump  HandleBoost);
+        } */
         // X and Y invert axes toggles
         if (InvertXAction)
         {
@@ -263,7 +268,7 @@ void ABallPawn::HandleInvertY(const FInputActionValue& Value)
     bInvertLookUpAxis = !bInvertLookUpAxis;
     // (Optional: notify UI here)
 }
-
+//------------- Jump input -----------------------
 void ABallPawn::HandleJump(const FInputActionValue& Value)
 {
     // Digital action; we only care that it fired
@@ -276,13 +281,25 @@ void ABallPawn::HandleJump(const FInputActionValue& Value)
 //--------------Boost Client-side input handler------------------
 void  ABallPawn::HandleBoost(const FInputActionValue& Value)
 {
+    const bool bPressed = Value.Get<bool>();
+    //----DEBUG------
+    if (GEngine)
+    {
+        GEngine->AddOnScreenDebugMessage(
+            -1, 1.5f, FColor::Green,
+            FString::Printf(TEXT("HandleBoost: Pressed=%d, Local=%d, Role=%d"),
+                bPressed? 1 : 0,
+                IsLocallyControlled()? 1 : 0,
+                static_cast<int32>(GetLocalRole()))
+                );
+    }
     // Only the locally controlled pawn should send the RPC
     if (!IsLocallyControlled())
     {
         return;
     }
     
-    const bool bPressed = Value.Get<bool>();
+    /* const bool bPressed = Value.Get<bool>(); */
     if (!bPressed)
     {
         return;  // We only care about the press not the release
