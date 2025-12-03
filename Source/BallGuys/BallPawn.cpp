@@ -229,12 +229,19 @@ void ABallPawn::HandleMove(const FInputActionValue& Value)
     CachedForwardInput = ForwardValue;
     CachedRightInput   = RightValue;
 
+    // Get Control Rotation (Camera rotation)
+    FRotator ControlRot = FRotator::ZeroRotator;
+    if (AController* PC = GetController())
+    {
+        ControlRot = PC->GetControlRotation();
+    }
+
     // Client-side prediction: Apply force immediately
-    ApplyMovementInput(ForwardValue, RightValue);
+    ApplyMovementInput(ForwardValue, RightValue, ControlRot);
 
     if (IsLocallyControlled())
     {
-        Server_AddMovementInput(ForwardValue, RightValue);
+        Server_AddMovementInput(ForwardValue, RightValue, ControlRot);
     }
 }
 
@@ -320,7 +327,7 @@ void  ABallPawn::HandleBoost(const FInputActionValue& Value)
 
 // ----------------- Shared Movement Logic -----------------
 
-void ABallPawn::ApplyMovementInput(float ForwardValue, float RightValue)
+void ABallPawn::ApplyMovementInput(float ForwardValue, float RightValue, const FRotator& ControlRot)
 {
     if (!MeshComp || !MeshComp->IsSimulatingPhysics())
     {
@@ -333,12 +340,8 @@ void ABallPawn::ApplyMovementInput(float ForwardValue, float RightValue)
         return;
     }
 
-    // Use the controller's yaw as our input space
-    FRotator ControlRot = FRotator::ZeroRotator;
-    if (AController* PC = GetController())
-    {
-        ControlRot = PC->GetControlRotation();
-    }
+    // Use the PASSED ControlRot (which comes from client) instead of local controller
+    // This ensures Server moves in the direction the Client was looking.
 
     // We only care about yaw (XZ plane)
     FRotator YawRot(0.f, ControlRot.Yaw, 0.f);
@@ -522,13 +525,13 @@ void ABallPawn::NotifyHit(
 
 // ----------------- Server RPC implementations -----------------
 
-void ABallPawn::Server_AddMovementInput_Implementation(float ForwardValue, float RightValue)
+void ABallPawn::Server_AddMovementInput_Implementation(float ForwardValue, float RightValue, FRotator ControlRot)
 {
     // Server also applies the force (authoritative simulation)
     // Avoid double application on Listen Server host
     if (!IsLocallyControlled()) 
     {
-        ApplyMovementInput(ForwardValue, RightValue);
+        ApplyMovementInput(ForwardValue, RightValue, ControlRot);
     }
 }
 

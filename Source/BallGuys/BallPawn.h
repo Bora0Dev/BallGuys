@@ -148,7 +148,7 @@ protected:
     // ----------------- Shared Movement Logic (Client + Server) -----------------
     
     /** Applies movement forces based on input. Called by both HandleMove (Client) and Server_AddMovementInput (Server). */
-    void ApplyMovementInput(float ForwardValue, float RightValue);
+    void ApplyMovementInput(float ForwardValue, float RightValue, const FRotator& ControlRot);
 
     /** Applies jump impulse. Called by both HandleJump (Client) and Server_Jump (Server). */
     void ApplyJump();
