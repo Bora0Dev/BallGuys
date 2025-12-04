@@ -29,3 +29,11 @@ The development relied on a suite of industry-standard tools and frameworks:
 Collaboration during development was facilitated through **Git** for source control, enabling the team to work on different features simultaneously and merge changes.
 
 Playtesting was conducted using the Steam App ID 480. This allowed team members to easily host and join games directly through their Steam friends list or via a development server browser. This approach removed the need for setting up dedicated servers during the early stages, allowing for rapid iteration and testing of network latency and replication logic in a real-world P2P environment.
+
+## Bora
+**Bora0Dev** has been instrumental in the core development and maintenance of *BallGuys*. Key contributions include:
+*   **Core Gameplay Mechanics**: Refactored the movement input system to utilize control rotation, significantly improving the control scheme and responsiveness for the "BallGuys" character.
+*   **Multiplayer Plugin**: Implemented and configured the Multiplayer Plugin, enabling robust networking capabilities and session management.
+*   **HUD Implementation**: Designed and implemented the Heads-Up Display (HUD) to provide real-time feedback to players, including scoreboards and status updates.
+*   **Project Initialization**: Established the initial project structure and repository, laying the groundwork for development.
+*  
