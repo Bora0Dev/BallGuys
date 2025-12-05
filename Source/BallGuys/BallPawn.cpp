@@ -161,9 +161,16 @@ void ABallPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
                 if (UEnhancedInputLocalPlayerSubsystem* Subsys =
                     ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(LP))
                 {
-                    if (DefaultMappingContext)
+                    if (DefaultMappingContext && Subsys)
                     {
                         Subsys->AddMappingContext(DefaultMappingContext, 0);
+                    }
+                    
+                    if (GEngine)
+                    {
+                        GEngine->AddOnScreenDebugMessage(
+                            -1, 5.f, FColor::Yellow,
+                            TEXT("Added DefaultMappingContext to local player"));
                     }
                 }
             }
