@@ -41,7 +41,14 @@ public:
 protected:
     // Called when the game starts or when spawned
     virtual void BeginPlay() override;
-
+    //------CONTROLLER TEST--------------
+    /* UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input")
+    UInputAction* TestPadAction;
+    
+    UFUNCTION()
+    void HandleTestPad(const FInputActionValue& Value);
+    */
+    //-------END CONTROLLER TEST---------
     /** Root + visual + physics body.
      *  Intentionally a StaticMeshComponent so it can simulate physics and collide.
      *  You will assign the actual mesh asset in a Blueprint subclass.
