@@ -17,6 +17,7 @@
 #include "InputMappingContext.h"
 #include "InputAction.h"
 #include "Net/UnrealNetwork.h"
+#include "BallGuysGameInstance.h" // added for Invert X+Y preferences
 
 ABallPawn::ABallPawn()
 {
@@ -80,6 +81,16 @@ ABallPawn::ABallPawn()
 void ABallPawn::BeginPlay()
 {
     Super::BeginPlay();
+    
+    // Pulling Invert Camera preferences from GameInstance (if present)
+    if (UGameInstance* GI = GetGameInstance())
+    {
+        if (UBallGuysGameInstance* BGI = Cast<UBallGuysGameInstance>(GI))
+        {
+            bInvertTurnAxis   = BGI->bInvertXPref;
+            bInvertLookUpAxis = BGI->bInvertYPref;
+        }
+    }
     
     // Caching base values once so boosts have something to multiply
     BaseTorqueStrength = TorqueStrength;
@@ -179,6 +190,17 @@ void ABallPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
     // Bind actions using EnhancedInputComponent
     if (UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(PlayerInputComponent))
     {
+        //----------CONTROLLER TEST----------
+        /* if (TestPadAction)
+        {
+            EnhancedInput->BindAction(
+                TestPadAction,
+                ETriggerEvent::Triggered,
+                this,
+                &ABallPawn::HandleTestPad
+            );
+        } */
+        //----------END OF CONTROLLER TEST-----
         if (MoveAction)
         {
             EnhancedInput->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ABallPawn::HandleMove);
@@ -221,6 +243,24 @@ void ABallPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
         }
     }
 }
+
+/////////CONTROLLER TEST INPUT HANDLER///////////
+/* void ABallPawn::HandleTestPad(const FInputActionValue& Value)
+{
+    const float Axis = Value.Get<float>();
+
+    if (GEngine)
+    {
+        GEngine->AddOnScreenDebugMessage(
+            -1, 1.0f, FColor::Cyan,
+            FString::Printf(TEXT("IA_TestPad: Axis=%.2f  Local=%d Role=%d"),
+                Axis,
+                IsLocallyControlled() ? 1 : 0,
+                static_cast<int32>(GetLocalRole()))
+        );
+    }
+} */
+//--------END OF CONTROLLER TEST----------------
 
 // ----------------- Client-side input handlers -----------------
 
@@ -274,7 +314,7 @@ void ABallPawn::TurnCamera(const FInputActionValue& Value)
                 Axis,
                 IsLocallyControlled() ? 1 : 0));
     } */
-    //----END DEBUG-------
+    //----END DEBUG----------------------
     if (bInvertTurnAxis)
     {
         Axis *= -1.f;
@@ -287,14 +327,14 @@ void ABallPawn::LookUpCamera(const FInputActionValue& Value)
 {
     float Axis = Value.Get<float>();
     //DEBUG FOR CONTROLLER--------------
-    if (GEngine)
+    /* if (GEngine)
     {
         GEngine->AddOnScreenDebugMessage(
             -1, 1.f, FColor::Green,
             FString::Printf(TEXT("LookUp: Y=%.2f  (Local=%d)"),
                 Axis,
                 IsLocallyControlled() ? 1 : 0));
-    }
+    } */
     //----END DEBUG-------
     if (bInvertLookUpAxis)
     {
@@ -312,10 +352,20 @@ void ABallPawn::HandleInvertX(const FInputActionValue& Value)
     {
         return;
     }
-
+    // Toggle Pawn bool
     bInvertTurnAxis = !bInvertTurnAxis;
     // (Optional; notify UI here)
+    
+    // Save InvertXPref to GameInstance
+    if (UGameInstance* GI = GetGameInstance())
+    {
+        if (UBallGuysGameInstance* BGI = Cast<UBallGuysGameInstance>(GI))
+        {
+            BGI->bInvertXPref = bInvertTurnAxis;
+        }
+    }
 }
+
 // Invert Y-Axis LookUp camera
 void ABallPawn::HandleInvertY(const FInputActionValue& Value)
 {
@@ -324,9 +374,18 @@ void ABallPawn::HandleInvertY(const FInputActionValue& Value)
     {
         return;
     }
-
+    // Toggle Pawn bool
     bInvertLookUpAxis = !bInvertLookUpAxis;
     // (Optional: notify UI here)
+    
+    // Save InvertYPref to GameInstance
+    if (UGameInstance* GI = GetGameInstance())
+    {
+        if (UBallGuysGameInstance* BGI = Cast<UBallGuysGameInstance>(GI))
+        {
+            BGI->bInvertYPref = bInvertLookUpAxis;
+        }
+    }
 }
 //------------- Jump input -----------------------
 void ABallPawn::HandleJump(const FInputActionValue& Value)
@@ -346,7 +405,7 @@ void  ABallPawn::HandleBoost(const FInputActionValue& Value)
 {
     const bool bPressed = Value.Get<bool>();
     // ---- DEBUG FOR CONTROLLER ----
-    if (GEngine)
+    /* if (GEngine)
     {
         GEngine->AddOnScreenDebugMessage(
             -1, 1.5f, FColor::Green,
@@ -355,8 +414,8 @@ void  ABallPawn::HandleBoost(const FInputActionValue& Value)
                 IsLocallyControlled() ? 1 : 0,
                 static_cast<int32>(GetLocalRole()))
         );
-    }
-    // ---- END DEBUG ----
+    } */
+    // ---- END DEBUG -----------------
     
     // Only the locally controlled pawn should send the RPC
     if (!IsLocallyControlled())
