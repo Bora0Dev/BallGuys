@@ -17,6 +17,7 @@
 #include "InputMappingContext.h"
 #include "InputAction.h"
 #include "Net/UnrealNetwork.h"
+#include "BallGuysGameInstance.h" // added for Invert X+Y preferences
 
 ABallPawn::ABallPawn()
 {
@@ -80,6 +81,16 @@ ABallPawn::ABallPawn()
 void ABallPawn::BeginPlay()
 {
     Super::BeginPlay();
+    
+    // Pulling Invert Camera preferences from GameInstance (if present)
+    if (UGameInstance* GI = GetGameInstance())
+    {
+        if (UBallGuysGameInstance* BGI = Cast<UBallGuysGameInstance>(GI))
+        {
+            bInvertTurnAxis   = BGI->bInvertXPref;
+            bInvertLookUpAxis = BGI->bInvertYPref;
+        }
+    }
     
     // Caching base values once so boosts have something to multiply
     BaseTorqueStrength = TorqueStrength;
@@ -341,10 +352,20 @@ void ABallPawn::HandleInvertX(const FInputActionValue& Value)
     {
         return;
     }
-
+    // Toggle Pawn bool
     bInvertTurnAxis = !bInvertTurnAxis;
     // (Optional; notify UI here)
+    
+    // Save InvertXPref to GameInstance
+    if (UGameInstance* GI = GetGameInstance())
+    {
+        if (UBallGuysGameInstance* BGI = Cast<UBallGuysGameInstance>(GI))
+        {
+            BGI->bInvertXPref = bInvertTurnAxis;
+        }
+    }
 }
+
 // Invert Y-Axis LookUp camera
 void ABallPawn::HandleInvertY(const FInputActionValue& Value)
 {
@@ -353,9 +374,18 @@ void ABallPawn::HandleInvertY(const FInputActionValue& Value)
     {
         return;
     }
-
+    // Toggle Pawn bool
     bInvertLookUpAxis = !bInvertLookUpAxis;
     // (Optional: notify UI here)
+    
+    // Save InvertYPref to GameInstance
+    if (UGameInstance* GI = GetGameInstance())
+    {
+        if (UBallGuysGameInstance* BGI = Cast<UBallGuysGameInstance>(GI))
+        {
+            BGI->bInvertYPref = bInvertLookUpAxis;
+        }
+    }
 }
 //------------- Jump input -----------------------
 void ABallPawn::HandleJump(const FInputActionValue& Value)
