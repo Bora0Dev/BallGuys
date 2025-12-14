@@ -269,14 +269,14 @@ void ABallPawn::HandleMove(const FInputActionValue& Value)
     // Expecting a 2D axis (X = Right, Y = Forward)
     const FVector2D MoveAxis = Value.Get<FVector2D>();
     //DEBUG FOR CONTROLLER--------------
-    if (GEngine)
+    /* if (GEngine)
     {
         GEngine->AddOnScreenDebugMessage(
             -1, 1.f, FColor::Green,
             FString::Printf(TEXT("HandleMove: X=%.2f Y=%.2f  (Local=%d)"),
                 MoveAxis.X, MoveAxis.Y,
                 IsLocallyControlled() ? 1 : 0));
-    }
+    } */
     //----END DEBUG-------
     const float ForwardValue = MoveAxis.Y;
     const float RightValue   = MoveAxis.X;
