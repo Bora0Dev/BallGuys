@@ -188,13 +188,13 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Ball|AirControl")
     bool bEnableAirControl = true;
 
-    /** How strong the air steering force is. Higher = more control mid-air. */
+    /** How strong the air steering force is. Higher = more control midair. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Ball|AirControl")
-    float AirControlStrength = 80000.f;
+    float AirControlStrength = 80.f;
 
     /** Caps horizontal (XY) speed while airborne. Prevents absurd sideways speed. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Ball|AirControl")
-    float MaxAirHorizontalSpeed = 1800.f;
+    float MaxAirHorizontalSpeed = 1.8f;
 
     /** Extra damping while airborne to stop “ice skating” in the air. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Ball|AirControl")
