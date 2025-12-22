@@ -482,15 +482,18 @@ void ABallPawn::ApplyMovementInput(float ForwardValue, float RightValue, const F
     
     // Added "Air Control" for escaping BP_JumpPad
     const bool bGrounded = IsGrounded();
+    
     // const float ControlScale = bGrounded ? 1.0f : AirControlMultiplier;
-    if (bGrounded)
-    {
-        const FVector Torque = TorqueAxis * TorqueStrength;
+    const FVector Torque = TorqueAxis * TorqueStrength;
 
-        // Add torque in radians (physics-space)
-        MeshComp->AddTorqueInRadians(Torque, NAME_None, true);
-    }
-    else
+    // Add torque in radians (physics-space)
+    MeshComp->AddTorqueInRadians(Torque, NAME_None, true);
+    
+    // Air Control (was the else in an if else but that disabled preloading TORQUE in the air)
+    // Air control is intentionally subtle:
+    // torque stays active in air for momentum play,
+    // small lateral force exists only to prevent soft-locks (jump pads, launches).
+    if (!bGrounded)
     {
         // Air movement = lateral force (lets player escape BP_JumpPad)
         ApplyAirControl(MoveDir);
