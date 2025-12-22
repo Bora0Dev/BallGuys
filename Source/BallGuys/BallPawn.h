@@ -176,12 +176,33 @@ protected:
     
     /** Adding this for "Air-Control" so player can escape the BP_JumpPad **/
     // Change the float to adjust effectiveness
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ball|Movement")
-    float AirControlMultiplier = /*0.15f*/ 1.0f;
+    // UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ball|Movement")
+    // float AirControlMultiplier = /*0.15f*/ 1.0f;
 
     /** Impulse strength applied to other balls when we hit them. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ball|Movement")
     float KnockImpulseStrength;
+    
+    //------------- Air Control (while not grounded) -------------
+    /** If true, allow player to steer in the air using lateral force (XY). */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Ball|AirControl")
+    bool bEnableAirControl = true;
+
+    /** How strong the air steering force is. Higher = more control mid-air. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Ball|AirControl")
+    float AirControlStrength = 80000.f;
+
+    /** Caps horizontal (XY) speed while airborne. Prevents absurd sideways speed. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Ball|AirControl")
+    float MaxAirHorizontalSpeed = 1800.f;
+
+    /** Extra damping while airborne to stop “ice skating” in the air. */
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Ball|AirControl")
+    float AirDamping = 0.15f;
+
+    /** Applies steering while airborne (XY force). */
+    void ApplyAirControl(const FVector& MoveDir);
+
 
     // ----------------- Client-side input cache -----------------
 
