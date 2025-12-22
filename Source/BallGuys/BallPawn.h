@@ -173,6 +173,11 @@ protected:
     /** How far down we trace to check if the ball is on the ground. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ball|Movement")
     float GroundCheckDistance;
+    
+    /** Adding this for "Air-Control" so player can escape the BP_JumpPad **/
+    // Change the float to adjust effectiveness
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ball|Movement")
+    float AirControlMultiplier = /*0.15f*/ 1.0f;
 
     /** Impulse strength applied to other balls when we hit them. */
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ball|Movement")
