@@ -482,12 +482,19 @@ void ABallPawn::ApplyMovementInput(float ForwardValue, float RightValue, const F
     
     // Added "Air Control" for escaping BP_JumpPad
     const bool bGrounded = IsGrounded();
-    const float ControlScale = bGrounded ? 1.0f : AirControlMultiplier;
+    // const float ControlScale = bGrounded ? 1.0f : AirControlMultiplier;
+    if (bGrounded)
+    {
+        const FVector Torque = TorqueAxis * TorqueStrength;
 
-    const FVector Torque = TorqueAxis * TorqueStrength;
-
-    // Add torque in radians (physics-space)
-    MeshComp->AddTorqueInRadians(Torque, NAME_None, true);
+        // Add torque in radians (physics-space)
+        MeshComp->AddTorqueInRadians(Torque, NAME_None, true);
+    }
+    else
+    {
+        // Air movement = lateral force (lets player escape BP_JumpPad)
+        ApplyAirControl(MoveDir);
+    }
 }
 
 void ABallPawn::ApplyJump()
@@ -506,6 +513,43 @@ void ABallPawn::ApplyJump()
     const FVector Impulse = FVector::UpVector * JumpImpulse;
     MeshComp->AddImpulse(Impulse, NAME_None, true);
 }
+
+void ABallPawn::ApplyAirControl(const FVector& MoveDir)
+{
+    if (!bEnableAirControl || !MeshComp || !MeshComp->IsSimulatingPhysics())
+    {
+        return;
+    }
+
+    // Only lateral steering (ignore Z)
+    FVector LateralDir = FVector(MoveDir.X, MoveDir.Y, 0.f);
+    if (LateralDir.IsNearlyZero())
+    {
+        return;
+    }
+    LateralDir.Normalize();
+
+    FVector Vel = MeshComp->GetPhysicsLinearVelocity();
+
+    // Apply a little damping in the air (optional but helps control feel)
+    FVector LateralVel = FVector(Vel.X, Vel.Y, 0.f);
+    if (!LateralVel.IsNearlyZero() && AirDamping > 0.f)
+    {
+        // Damping force opposite to lateral motion
+        const FVector DampingForce = -LateralVel * AirDamping * MeshComp->GetMass();
+        MeshComp->AddForce(DampingForce, NAME_None, true);
+    }
+
+    // Cap horizontal speed (prevents runaway sideways velocity)
+    const float CurrentSpeedXY = LateralVel.Size();
+    if (CurrentSpeedXY < MaxAirHorizontalSpeed)
+    {
+        // "Accel change" = independent of mass (consistent feel)
+        const FVector Force = LateralDir * AirControlStrength;
+        MeshComp->AddForce(Force, NAME_None, true);
+    }
+}
+
 
 //-----------Sever-side Boost logic----------------
 void ABallPawn::Server_TryBoost_Implementation()
