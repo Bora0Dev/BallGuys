@@ -558,13 +558,13 @@ void ABallPawn::ApplyAirControl(const FVector& MoveDir)
 void ABallPawn::Server_TryBoost_Implementation()
 {
     // DEBUG
-    if (GEngine)
+   /* if (GEngine)
     {
         GEngine->AddOnScreenDebugMessage(
             -1, 2.f, FColor::Yellow,
             FString::Printf(TEXT("Server_TryBoost: Cooldown set to %.2f"), BoostCooldown)
             );
-    }
+    } */
     
     // Only the server controls the boost state
  if (bIsBoosting)
