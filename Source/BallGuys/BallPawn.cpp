@@ -10,7 +10,7 @@
 #include "GameFramework/PlayerController.h"
 #include "Engine/CollisionProfile.h"
 #include "Engine/World.h"
-#include "DrawDebugHelpers.h"
+// #include "DrawDebugHelpers.h"
 #include "EnhancedInputComponent.h"
 #include "Components/InputComponent.h"
 #include "EnhancedInputSubsystems.h"
@@ -176,13 +176,14 @@ void ABallPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
                     {
                         Subsys->AddMappingContext(DefaultMappingContext, 0);
                     }
-                    
+                    /*
                     if (GEngine)
                     {
                         GEngine->AddOnScreenDebugMessage(
                             -1, 5.f, FColor::Yellow,
                             TEXT("Added DefaultMappingContext to local player"));
                     }
+                    */
                 }
             }
         }
@@ -285,7 +286,7 @@ void ABallPawn::HandleMove(const FInputActionValue& Value)
     CachedForwardInput = ForwardValue;
     CachedRightInput   = RightValue;
 
-    // Get Control Rotation (Camera rotation)
+    // Get Control Rotation (Camera rotation) need this to fix players no camera rotation control
     FRotator ControlRot = FRotator::ZeroRotator;
     if (AController* PC = GetController())
     {
@@ -293,11 +294,13 @@ void ABallPawn::HandleMove(const FInputActionValue& Value)
     }
 
     // Client-side prediction: Apply force immediately
-    ApplyMovementInput(ForwardValue, RightValue, ControlRot);
+    // ControlRot added to fix Host/Client players having no camera rotation control
+    ApplyMovementInput(ForwardValue, RightValue, /*--NEW--*/ControlRot);
 
     if (IsLocallyControlled())
     {
-        Server_AddMovementInput(ForwardValue, RightValue, ControlRot);
+        // ControlRot added to fix Host/Client players having no camera rotation control
+        Server_AddMovementInput(ForwardValue, RightValue, /*--NEW--*/ControlRot);
     }
 }
 
@@ -476,6 +479,10 @@ void ABallPawn::ApplyMovementInput(float ForwardValue, float RightValue, const F
     }
 
     TorqueAxis.Normalize();
+    
+    // Added "Air Control" for escaping BP_JumpPad
+    const bool bGrounded = IsGrounded();
+    const float ControlScale = bGrounded ? 1.0f : AirControlMultiplier;
 
     const FVector Torque = TorqueAxis * TorqueStrength;
 
