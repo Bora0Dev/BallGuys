@@ -117,4 +117,14 @@ ________________________________________
 
 https://github.com/user-attachments/assets/d61c17b8-e852-45f5-ba58-f406d5a236a1
 
-
+List of declared assets
+> The following assets were created or modified with the use of ChatGPT 5.1-5.2 in a browser
+> * `BallPawn.h` `BallPawn.cpp` `BP_BallPawm`
+> * `BallGuysGameInstance.h` `BallGuysGameInstance.cpp` `BP_BallGuysGameInstance`
+> * `BallGuysHUD.h` `BallGuysHUD.cpp`
+> * `BallGuysPlayerController.h` `BallGuysPlayerController.cpp` `BP_BallGuysPlayerController`
+> * `BP_BallGuysGameMode`
+> * `WBP_BoostUI` `WBP_InvertAxisHUD` `WBP_InvertAxisHUD_Fix`
+> * `SC_BallBounce_2_Edit_Cue` `SC_BallHit_2_Edit_Cue` `SC_BallRolling`
+> * `IMC_Balls` `IA_Boost` `IA_InvertX` `IA_InvertY` `IA_Jump` `IA_Move` `IA_Turn`
+> * `PM_Ball`
