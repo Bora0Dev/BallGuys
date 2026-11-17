@@ -47,6 +47,7 @@ void UBallGuysGameInstance::CreateSession(bool bIsPublic)
 {
 	if (!SessionInterface.IsValid())
 	{
+		OnCreateLobbyComplete.Broadcast(false);
 		return;
 	}
 
@@ -103,6 +104,7 @@ void UBallGuysGameInstance::CreateSession(bool bIsPublic)
 	if (!bStarted)
 	{
 		SessionInterface->ClearOnCreateSessionCompleteDelegate_Handle(CreateSessionCompleteDelegateHandle);
+		OnCreateLobbyComplete.Broadcast(false);
 	}
 }
 
@@ -127,6 +129,8 @@ void UBallGuysGameInstance::OnCreateSessionComplete(FName SessionName, bool bWas
 		SessionInterface->ClearOnCreateSessionCompleteDelegate_Handle(CreateSessionCompleteDelegateHandle);
 	}
 
+	OnCreateLobbyComplete.Broadcast(bWasSuccessful);
+
 	if (!bWasSuccessful)
 	{
 		return;
@@ -142,6 +146,8 @@ void UBallGuysGameInstance::FindSessions(int32 MaxSearchResults)
 {
 	if (!SessionInterface.IsValid())
 	{
+		DiscoveredLobbies.Empty();
+		OnFindLobbiesComplete.Broadcast(DiscoveredLobbies, false);
 		return;
 	}
 
@@ -162,8 +168,17 @@ void UBallGuysGameInstance::FindSessions(int32 MaxSearchResults)
 
 	if (!bStarted)
 	{
+		bQuickJoinPending = false;
 		SessionInterface->ClearOnFindSessionsCompleteDelegate_Handle(FindSessionsCompleteDelegateHandle);
+		DiscoveredLobbies.Empty();
+		OnFindLobbiesComplete.Broadcast(DiscoveredLobbies, false);
 	}
+}
+
+void UBallGuysGameInstance::QuickJoinSession()
+{
+	bQuickJoinPending = true;
+	FindSessions(100);
 }
 
 void UBallGuysGameInstance::OnFindSessionsComplete(bool bWasSuccessful)
@@ -173,18 +188,58 @@ void UBallGuysGameInstance::OnFindSessionsComplete(bool bWasSuccessful)
 		SessionInterface->ClearOnFindSessionsCompleteDelegate_Handle(FindSessionsCompleteDelegateHandle);
 	}
 
-	if (!bWasSuccessful || !LastSessionSearch.IsValid())
+	DiscoveredLobbies.Empty();
+
+	if (bWasSuccessful && LastSessionSearch.IsValid())
 	{
-		return;
+		for (int32 Index = 0; Index < LastSessionSearch->SearchResults.Num(); ++Index)
+		{
+			const FOnlineSessionSearchResult& Result = LastSessionSearch->SearchResults[Index];
+			if (!Result.IsValid())
+			{
+				continue;
+			}
+
+			const int32 MaxSlots = Result.Session.SessionSettings.NumPublicConnections;
+			const int32 OpenSlots = Result.Session.NumOpenPublicConnections;
+			const int32 FilledSlots = FMath::Clamp(MaxSlots - OpenSlots, 1, MAX_LOBBY_PLAYERS);
+
+			FBallGuysLobbyInfo Info;
+			Info.SearchResultIndex = Index;
+			Info.HostName = Result.Session.OwningUserName.IsEmpty() ? TEXT("Lobby") : Result.Session.OwningUserName;
+			Info.MaxPlayers = MaxSlots > 0 ? MaxSlots : MAX_LOBBY_PLAYERS;
+			Info.CurrentPlayers = FilledSlots;
+			Info.PingMs = Result.PingInMs;
+
+			DiscoveredLobbies.Add(Info);
+		}
 	}
 
-	// LastSessionSearch->SearchResults now holds the discovered public lobbies
+	OnFindLobbiesComplete.Broadcast(DiscoveredLobbies, bWasSuccessful);
+
+	if (bQuickJoinPending)
+	{
+		bQuickJoinPending = false;
+
+		// Join the first available public lobby with an open slot
+		for (const FBallGuysLobbyInfo& Lobby : DiscoveredLobbies)
+		{
+			if (Lobby.CurrentPlayers < Lobby.MaxPlayers)
+			{
+				JoinSessionByIndex(Lobby.SearchResultIndex);
+				return;
+			}
+		}
+
+		OnJoinLobbyComplete.Broadcast(false);
+	}
 }
 
 void UBallGuysGameInstance::JoinSession(const FOnlineSessionSearchResult& SessionResult)
 {
 	if (!SessionInterface.IsValid() || !SessionResult.IsValid())
 	{
+		OnJoinLobbyComplete.Broadcast(false);
 		return;
 	}
 
@@ -199,6 +254,7 @@ void UBallGuysGameInstance::JoinSession(const FOnlineSessionSearchResult& Sessio
 	if (!bStarted)
 	{
 		SessionInterface->ClearOnJoinSessionCompleteDelegate_Handle(JoinSessionCompleteDelegateHandle);
+		OnJoinLobbyComplete.Broadcast(false);
 	}
 }
 
@@ -206,6 +262,7 @@ void UBallGuysGameInstance::JoinSessionByIndex(int32 SessionIndex)
 {
 	if (!LastSessionSearch.IsValid() || !LastSessionSearch->SearchResults.IsValidIndex(SessionIndex))
 	{
+		OnJoinLobbyComplete.Broadcast(false);
 		return;
 	}
 
@@ -219,7 +276,10 @@ void UBallGuysGameInstance::OnJoinSessionComplete(FName SessionName, EOnJoinSess
 		SessionInterface->ClearOnJoinSessionCompleteDelegate_Handle(JoinSessionCompleteDelegateHandle);
 	}
 
-	if (Result != EOnJoinSessionCompleteResult::Success || !SessionInterface.IsValid())
+	const bool bSuccess = (Result == EOnJoinSessionCompleteResult::Success);
+	OnJoinLobbyComplete.Broadcast(bSuccess);
+
+	if (!bSuccess || !SessionInterface.IsValid())
 	{
 		return;
 	}
