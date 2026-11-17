@@ -2,7 +2,7 @@
 
 // BallPawn.cpp
 
-#include "BallPawn.h"
+#include "Player/BallPawn.h"
 
 #include "Camera/CameraComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -17,7 +17,7 @@
 #include "InputMappingContext.h"
 #include "InputAction.h"
 #include "Net/UnrealNetwork.h"
-#include "BallGuysGameInstance.h" // added for Invert X+Y preferences
+#include "Game/BallGuysGameInstance.h" // added for Invert X+Y preferences
 
 ABallPawn::ABallPawn()
 {

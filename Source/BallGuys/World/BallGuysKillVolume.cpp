@@ -1,7 +1,7 @@
-#include "BallGuysKillVolume.h"
+#include "World/BallGuysKillVolume.h"
 #include "Components/BoxComponent.h"
-#include "BallGuysGameMode.h"
-#include "BallPawn.h"
+#include "Game/BallGuysGameMode.h"
+#include "Player/BallPawn.h"
 #include "Kismet/GameplayStatics.h"
 
 ABallGuysKillVolume::ABallGuysKillVolume()

@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameMode.h"
-#include "BallGuysGameState.h"
+#include "Game/BallGuysGameState.h"
 #include "BallGuysGameMode.generated.h"
 
 /**

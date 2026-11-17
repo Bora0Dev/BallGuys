@@ -1,5 +1,5 @@
-#include "BallGuysPlayerController.h"
-#include "BallGuysPlayerState.h"
+#include "Player/BallGuysPlayerController.h"
+#include "Player/BallGuysPlayerState.h"
 
 void ABallGuysPlayerController::ToggleReadyState()
 {
