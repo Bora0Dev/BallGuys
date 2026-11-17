@@ -57,6 +57,10 @@ public:
 	/** Hardcap for lobby player count */
 	static constexpr int32 MAX_LOBBY_PLAYERS = 4;
 
+	/** Number of players traveling from the Lobby into the Gameplay Map */
+	UPROPERTY(BlueprintReadWrite, Category = "Multiplayer|Lobby")
+	int32 ExpectedMatchPlayers = 1;
+
 	// --- Input Preferences ---
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Settings|Input")

@@ -1,6 +1,7 @@
 #include "World/BallGuysKillVolume.h"
 #include "Components/BoxComponent.h"
 #include "Game/BallGuysGameMode.h"
+#include "Game/BallGuysLobbyGameMode.h"
 #include "Player/BallPawn.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -35,11 +36,15 @@ void ABallGuysKillVolume::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AA
 		ABallPawn* PlayerPawn = Cast<ABallPawn>(OtherActor);
 		if (PlayerPawn)
 		{
-			ABallGuysGameMode* GameMode = Cast<ABallGuysGameMode>(UGameplayStatics::GetGameMode(GetWorld()));
-			if (GameMode)
+			AGameModeBase* AuthGM = UGameplayStatics::GetGameMode(GetWorld());
+			if (ABallGuysGameMode* GameMode = Cast<ABallGuysGameMode>(AuthGM))
 			{
 				UE_LOG(LogTemp, Warning, TEXT("KillVolume killing pawn: %s"), *PlayerPawn->GetName());
 				GameMode->PlayerDied(PlayerPawn->GetController());
+			}
+			else if (ABallGuysLobbyGameMode* LobbyGameMode = Cast<ABallGuysLobbyGameMode>(AuthGM))
+			{
+				LobbyGameMode->RespawnLobbyPlayer(PlayerPawn->GetController());
 			}
 		}
 	}

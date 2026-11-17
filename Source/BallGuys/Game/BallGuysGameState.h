@@ -32,6 +32,12 @@ public:
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = "BallGuys Gameplay")
 	EBallGuysGamePhase CurrentGamePhase;
 
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "BallGuys Lobby")
+	int32 ReadyPlayerCount;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "BallGuys Lobby")
+	int32 ConnectedPlayerCount;
+
 	UFUNCTION(BlueprintCallable, Category = "BallGuys Gameplay")
 	void SetGamePhase(EBallGuysGamePhase NewPhase);
 

@@ -5,6 +5,8 @@ ABallGuysGameState::ABallGuysGameState()
 {
 	TimeRemaining = 0.0f;
 	CurrentGamePhase = EBallGuysGamePhase::WaitingForPlayers;
+	ReadyPlayerCount = 0;
+	ConnectedPlayerCount = 0;
 }
 
 void ABallGuysGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -13,6 +15,8 @@ void ABallGuysGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 
 	DOREPLIFETIME(ABallGuysGameState, TimeRemaining);
 	DOREPLIFETIME(ABallGuysGameState, CurrentGamePhase);
+	DOREPLIFETIME(ABallGuysGameState, ReadyPlayerCount);
+	DOREPLIFETIME(ABallGuysGameState, ConnectedPlayerCount);
 }
 
 void ABallGuysGameState::SetGamePhase(EBallGuysGamePhase NewPhase)
